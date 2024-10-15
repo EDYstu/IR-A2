@@ -1,9 +1,6 @@
 function [ur3Robot] = enviormentCreation()
 %UNTITLED11 Summary of this function goes here
 %   Detailed explanation goes here
-    clc;
-    clf; 
-
     r = UR3(transl(0.5,0,0.5)); 
     ur3Robot = r;
 
@@ -11,9 +8,9 @@ function [ur3Robot] = enviormentCreation()
     grid on
     axis equal
             
-    %Using the method from Tutorial 4
+            %Using the method from Tutorial 4
 
-    %table
+            %table
     table = PlaceObject('tableBrown2.1x1.4x0.5m.ply');
     vertices = get(table,'Vertices');
     transformedVertices = [vertices,ones(size(vertices,1),1)] * transl(0,0,0)';
@@ -42,10 +39,10 @@ function [ur3Robot] = enviormentCreation()
     set(estop,'Vertices',transformedsEstopVertices1(:,1:3));
 
     %RedBin
-    %redBin = PlaceObject('RedDeskTrashBin.ply'); 
-    %redBinV = get(redBin,'Vertices');
-    %transformedRedBinVertices = [redBinV,ones(size(redBinV,1),1)] * transl(1.5,0,0)';
-    %set(redBin,'Vertices',transformedRedBinVertices(:,1:3));
+    redBin = PlaceObject('RedDeskTrashBin.ply'); 
+    redBinV = get(redBin,'Vertices');
+    transformedRedBinVertices = [redBinV,ones(size(redBinV,1),1)] * transl(1.5,0,0)';
+    set(redBin,'Vertices',transformedRedBinVertices(:,1:3));
 
     zlim([0, 3]); % limit the figure
     xlim([-4, 4]);
