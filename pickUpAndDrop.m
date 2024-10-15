@@ -1,4 +1,4 @@
-function [objectLocation, objectVertices, objectModel] = untitled6(r,objectLocation, objectVertices, objectModel, dropOff)
+function [objectLocation, objectVertices, objectModel] = pickUpAndDrop(r,objectLocation, objectVertices, objectModel, dropOff)
 steps = 50;
 
     %---------PICKUP THE OBJECT---------

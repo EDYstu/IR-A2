@@ -42,10 +42,10 @@ function [ur3Robot] = enviormentCreation()
     set(estop,'Vertices',transformedsEstopVertices1(:,1:3));
 
     %RedBin
-    %redBin = PlaceObject('RedDeskTrashBin.ply'); 
-    %redBinV = get(redBin,'Vertices');
-    %transformedRedBinVertices = [redBinV,ones(size(redBinV,1),1)] * transl(1.5,0,0)';
-    %set(redBin,'Vertices',transformedRedBinVertices(:,1:3));
+    redBin = PlaceObject('soda can- 350ml.ply'); 
+    redBinV = get(redBin,'Vertices');
+    transformedRedBinVertices = [redBinV,ones(size(redBinV,1),1)] * transl(1.5,0,1)';
+    set(redBin,'Vertices',transformedRedBinVertices(:,1:3));
 
     zlim([0, 3]); % limit the figure
     xlim([-4, 4]);
