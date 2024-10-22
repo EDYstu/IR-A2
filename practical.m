@@ -88,6 +88,8 @@ sendGoal(client,goal);
 input("Press enter to open")
 openService.call();
 
+durationSeconds = 1;
+
 currentJointState_321456 = (jointStateSubscriber.LatestMessage.Position)'; % Note the default order of the joints is 3,2,1,4,5,6
 currentJointState_123456 = [currentJointState_321456(3:-1:1),currentJointState_321456(4:6)]
 
@@ -109,7 +111,7 @@ sendGoal(client,goal);
 input("Press enter to close")
 closeService.call();
 
-pause(2);
+
 input("Press enter to continue to dropoff")
 
 currentJointState_321456 = (jointStateSubscriber.LatestMessage.Position)'; % Note the default order of the joints is 3,2,1,4,5,6
@@ -129,7 +131,7 @@ goal.Trajectory.Points = [startJointSend; endJointSend];
 goal.Trajectory.Header.Stamp = jointStateSubscriber.LatestMessage.Header.Stamp + rosduration(bufferSeconds);
 sendGoal(client,goal);
 
-pause(2);
+
 input("Press enter to continue to dropoff")
 
 currentJointState_321456 = (jointStateSubscriber.LatestMessage.Position)'; % Note the default order of the joints is 3,2,1,4,5,6
@@ -150,7 +152,6 @@ goal.Trajectory.Points = [startJointSend; endJointSend];
 goal.Trajectory.Header.Stamp = jointStateSubscriber.LatestMessage.Header.Stamp + rosduration(bufferSeconds);
 sendGoal(client,goal);
 
-pause(3);
 
 input("Enter to drop can")
 openService.call()
