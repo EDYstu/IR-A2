@@ -25,7 +25,7 @@ goal.Trajectory.Header.Seq = 1;
 goal.Trajectory.Header.Stamp = rostime('Now','system');
 goal.GoalTimeTolerance = rosduration(0.05);
 bufferSeconds = 1; % This allows for the time taken to send the message. If the network is fast, this could be reduced.
-durationSeconds = 1; % This is how many seconds the movement will take
+durationSeconds = 2; % This is how many seconds the movement will take
 
 startJointSend = rosmessage('trajectory_msgs/JointTrajectoryPoint');
 startJointSend.Positions = currentJointState_123456;
@@ -143,8 +143,9 @@ startJointSend = rosmessage('trajectory_msgs/JointTrajectoryPoint');
 startJointSend.Positions = currentJointState_123456;
 startJointSend.TimeFromStart = rosduration(0);     
 
+input("Press enter to continue to dropoff")
 endJointSend = rosmessage('trajectory_msgs/JointTrajectoryPoint');
-nextJointState_123456 = [1.748, -1.189, 0.493, -1.241, -1.569, -0.035];
+nextJointState_123456 = [1.748, -0.967, 0.493, -1.241, -1.5];
 endJointSend.Positions = nextJointState_123456;
 endJointSend.TimeFromStart = rosduration(durationSeconds);
 
@@ -152,54 +153,6 @@ goal.Trajectory.Points = [startJointSend; endJointSend];
 
 goal.Trajectory.Header.Stamp = jointStateSubscriber.LatestMessage.Header.Stamp + rosduration(bufferSeconds);
 sendGoal(client,goal);
-
-input("Move to can 3")
-
-currentJointState_321456 = (jointStateSubscriber.LatestMessage.Position)'; % Note the default order of the joints is 3,2,1,4,5,6
-currentJointState_123456 = [currentJointState_321456(3:-1:1),currentJointState_321456(4:6)]
-
-startJointSend = rosmessage('trajectory_msgs/JointTrajectoryPoint');
-startJointSend.Positions = currentJointState_123456;
-startJointSend.TimeFromStart = rosduration(0);     
-
-endJointSend = rosmessage('trajectory_msgs/JointTrajectoryPoint');
-nextJointState_123456 = [1.748, -0.967, 0.493, -1.241, -1.569, -0.035];
-endJointSend.Positions = nextJointState_123456;
-endJointSend.TimeFromStart = rosduration(durationSeconds);
-
-goal.Trajectory.Points = [startJointSend; endJointSend];
-
-goal.Trajectory.Header.Stamp = jointStateSubscriber.LatestMessage.Header.Stamp + rosduration(bufferSeconds);
-sendGoal(client,goal);
-
-input("Enter to collect can")
-closeService.call()
-
-
-input("Move to can 3 dropoff")
-
-currentJointState_321456 = (jointStateSubscriber.LatestMessage.Position)'; % Note the default order of the joints is 3,2,1,4,5,6
-currentJointState_123456 = [currentJointState_321456(3:-1:1),currentJointState_321456(4:6)]
-
-startJointSend = rosmessage('trajectory_msgs/JointTrajectoryPoint');
-startJointSend.Positions = currentJointState_123456;
-startJointSend.TimeFromStart = rosduration(0);     
-
-
-endJointSend = rosmessage('trajectory_msgs/JointTrajectoryPoint');
-nextJointState_123456 = [-0.037, -1.991, 1.177, -1.241, -1.569, -0.035];
-endJointSend.Positions = nextJointState_123456;
-endJointSend.TimeFromStart = rosduration(durationSeconds);
-
-goal.Trajectory.Points = [startJointSend; endJointSend];
-
-goal.Trajectory.Header.Stamp = jointStateSubscriber.LatestMessage.Header.Stamp + rosduration(bufferSeconds);
-sendGoal(client,goal);
-
-input("Dropoff")
-openService.call(); 
-
-
 
 
 
