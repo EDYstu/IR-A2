@@ -173,9 +173,13 @@ classdef FinalDemo < handle
 
             %%Thor to Red Can
             for i = 1:self.steps
-                self.thor.model.animate(qMatrix1(i,:));
-                drawnow();
-                pause(0.02);
+                if self.SafetyFlag == false
+                    self.thor.model.animate(qMatrix1(i,:));
+                    drawnow();
+                    pause(0.02);
+                elseif self.SafetyFlag
+                    input("press enter to reset system")
+                end
             end
             
             T2 = transl(self.rcanMpos); %* trotx(pi) * trotz(pi/2);
