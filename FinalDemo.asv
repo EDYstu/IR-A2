@@ -1,0 +1,60 @@
+classdef FinalDemo < handle
+
+    properties
+        %table Models Heights
+        tableHeight = 0.54; 
+        
+        %trash brick starting locations
+
+
+        %trash model vertices
+  
+        
+        %trash Models
+       
+            
+        %DropOff Locations
+        %dropOff1 = [-0.15, 0.3, 0.54];
+
+
+        %robot
+        thor
+        ur3
+    end
+
+    methods 
+        function self = FinalDemo()
+            clc
+            clf
+
+            %set the brick starting locations
+            %self.trash1Location = [-0.6, -0.4, self.tableHeight];
+
+			input('Press enter to begin')
+			self.placeObjects(); %places all the objects in the enviorment
+       
+            self.thor = Thor(transl(0.5,0,0.5)); 
+            self.ur3 = UR3e(transl(-0.4,0,0.5));
+            
+            input('Press enter to begin moving')
+            self.move() %movex brick to locations 
+           
+           
+
+		end
+
+        function placeObjects(self)
+            hold on;
+            grid on
+            axis equal
+            
+            %Using the method from Tutorial 4
+
+            zlim([0, 4]); % limit the figure
+            xlim([-5, 5]);
+            ylim([-3, 3]);
+
+        end
+
+    end
+end
