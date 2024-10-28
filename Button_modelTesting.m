@@ -2,11 +2,12 @@ clc
 clf
 clear
 
-global emergencyStopFlag resumeFlag buttonPressed waitingForResume;
-emergencyStopFlag = false;  % Initial state is off
+global emergencyStopFlag resumeFlag buttonPressed waitingForResume currentStep animationTimer;
+emergencyStopFlag = false;       % Initial state is off
 resumeFlag = false;
 buttonPressed = false;
 waitingForResume = false;
+currentStep = 1;                 % Track the current animation step
 
 %% Arduino Button Setup
 port = 'COM6';
@@ -20,45 +21,8 @@ debounceDelay = 0.05; % 50 ms debounce delay
 t = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, ...
           'TimerFcn', @(~,~)checkEmergencyStop(a, buttonPin, debounceDelay));
 
+% Start the button monitoring timer
 start(t);
-
-function checkEmergencyStop(a, buttonPin, debounceDelay)
-    global emergencyStopFlag resumeFlag buttonPressed waitingForResume;
-    
-    % Read the button state
-    buttonState = readDigitalPin(a, buttonPin);
-    
-    % Check if buttonState is a scalar
-    if ~isscalar(buttonState)
-        disp("Error: Button state is not a scalar.");
-        return;
-    end
-
-    % Handle button press with debounce
-    if buttonState == 0 && ~buttonPressed
-        if ~emergencyStopFlag && ~waitingForResume
-            % First press: Engage e-stop
-            emergencyStopFlag = true;
-            waitingForResume = false; % Reset waiting for resume
-            resumeFlag = false; % Ensure resume needs confirmation
-            disp('Emergency Stop Engaged');
-        elseif emergencyStopFlag && ~waitingForResume
-            % Second press: Disengage e-stop but wait for resume command
-            emergencyStopFlag = false;
-            waitingForResume = true; % Set waiting for resume
-            disp('Emergency Stop Disengaged. Waiting for Resume Command.');
-        elseif waitingForResume
-            % Third press: Resume robot motion
-            resumeFlag = true;
-            waitingForResume = false;
-            disp('Resume Command Issued');
-        end
-        buttonPressed = true;
-        pause(debounceDelay); % Debounce delay
-    elseif buttonState == 1
-        buttonPressed = false;
-    end
-end
 
 %% Robot Setup
 r = Thor;
@@ -83,29 +47,93 @@ qMatrix2 = jtraj(q1, q2, steps);
 qMatrix3 = jtraj(q2, q3, steps);
 qMatrix4 = jtraj(q3, q4, steps);
 
-%% Main Loop with E-stop and Resume Logic
-for trajectory = {qMatrix2, qMatrix3, qMatrix4}
-    qMatrix = trajectory{1};  % Get the current trajectory
+%% Main Animation Timer for E-Stop Control
+trajectoryList = {qMatrix2, qMatrix3, qMatrix4};
+global animationTimer;
+animationTimer = timer('ExecutionMode', 'fixedRate', 'Period', 0.01, ...
+                       'TimerFcn', @(~,~)animateRobot(r, trajectoryList, steps));
 
-    for i = 1:steps
-        if emergencyStopFlag
-            % Pause robot and wait for resume command
-            disp('Robot Motion Paused');
-            while emergencyStopFlag
-                pause(0.1); % Check periodically if e-stop has been disengaged
-            end
+% Start the animation timer
+start(animationTimer);
 
-            % Wait for resume command (user must set resumeFlag separately)
-            disp('Awaiting Resume Command');
-            while ~resumeFlag
-                pause(0.1); % Wait for user to issue the resume command
-            end
-            disp('Resuming Robot Motion');
+%% Emergency Stop and Resume Function
+function checkEmergencyStop(a, buttonPin, debounceDelay)
+    global emergencyStopFlag resumeFlag buttonPressed waitingForResume;
+
+    % Read the button state
+    buttonState = readDigitalPin(a, buttonPin);
+
+    % Handle button press with debounce
+    if buttonState == 0 && ~buttonPressed
+        if ~emergencyStopFlag && ~waitingForResume
+            emergencyStopFlag = true;
+            waitingForResume = false;
+            resumeFlag = false;
+            disp('Emergency Stop Engaged');
+        elseif emergencyStopFlag && ~waitingForResume
+            emergencyStopFlag = false;
+            waitingForResume = true;
+            disp('Emergency Stop Disengaged. Waiting for Resume Command.');
+        elseif waitingForResume
+            resumeFlag = true;
+            waitingForResume = false;
+            disp('Resume Command Issued');
         end
+        buttonPressed = true;
+        pause(debounceDelay); % Debounce delay
+    elseif buttonState == 1
+        buttonPressed = false;
+    end
+end
 
-        % Continue robot motion when not stopped
-        r.model.animate(qMatrix(i,:));
+%% Animation Function with E-Stop Check
+function animateRobot(r, trajectoryList, steps)
+    global emergencyStopFlag resumeFlag currentStep animationTimer;
+
+    persistent currentTrajectoryIndex;
+    if isempty(currentTrajectoryIndex)
+        currentTrajectoryIndex = 1;  % Start with the first trajectory
+    end
+
+    % Check if e-stop is active
+    if emergencyStopFlag
+        stop(animationTimer);
+        disp('Robot Motion Paused Due to Emergency Stop');
+        return;
+    end
+
+    % Proceed with animation if not stopped
+    qMatrix = trajectoryList{currentTrajectoryIndex};
+    if currentStep <= steps
+        % Animate the robot to the next position in the trajectory
+        r.model.animate(qMatrix(currentStep, :));
         drawnow();
-        pause(0.01);
+        currentStep = currentStep + 1;  % Increment the step
+    else
+        % Move to the next trajectory
+        currentTrajectoryIndex = currentTrajectoryIndex + 1;
+        if currentTrajectoryIndex > numel(trajectoryList)
+            stop(animationTimer);  % Stop the animation timer if done
+            disp('Animation completed.');
+            return;
+        end
+        currentStep = 1;  % Reset step counter for the new trajectory
+    end
+end
+
+%% Resume Timer Function
+resumeTimer = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, ...
+                    'TimerFcn', @(~,~)checkResume());
+
+start(resumeTimer);
+
+function checkResume()
+    global resumeFlag animationTimer
+
+    % If the resume command has been issued, restart the animation
+    if resumeFlag
+        resumeFlag = false;  % Clear the flag
+        start(animationTimer);  % Resume the animation
+        disp('Resuming Robot Motion');
     end
 end
