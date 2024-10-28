@@ -28,7 +28,9 @@ classdef FinalDemo < handle
         %trash Models
         redCan;
         mcarton;
-           
+
+        %Safety Flag
+        SafetyFlag = false;
 
 
         %robot
@@ -145,50 +147,13 @@ classdef FinalDemo < handle
 
 
 
-            scale = 0.5;
             view(3)
 
         end
 
         function moveTrash(self)
 
-            %%Thor Transforms
-            qr1start = self.thor.model.getpos();
-
-            % T1 = transl(self.rcaniMpos) * trotx(pi);
-            T1 = transl(self.rcanIpos) * trotx(pi); %"where red can is"
-            q1=  self.thor.model.ikcon(T1); %q1 = r.model.ikcon(T1);
-
-            T2 = transl(self.rcanMpos); %* trotx(pi) * trotz(pi/2);
-            q2 = self.thor.model.ikcon(T2); %"Where to place can for pick up
-
-            T3 = transl((self.mcartoniPos) + [0.02,-0.02,0.03])* trotx(pi) * trotz(pi/2);
-            q3=  self.thor.model.ikcon(T3);
-
-
-            %spawn to red can
-            qMatrix1 = jtraj(qr1start,q1,self.steps);
-            %drop off
-            qMatrix2 = jtraj(q1,q2,self.steps);
-            %to Mcarton
-            qMatrix3 = jtraj(q2,q3,self.steps);
-
-            
-
-            %%UR3e Transforms.
-            qr2start = self.ur3.model.getpos();
-            
-            %0.165,0,0.625 [self.rcanfMpos] 
-            %%0.02 offset (x axis) from the object origin will work.
-            T1r2 = transl(self.rcanMpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %"where red can is"
-            q1r2=  self.ur3.model.ikcon(T1r2, qr2start); %q1 = r.model.ikcon(T1);
-            
-            qr2Matrix1 = jtraj(qr2start,q1r2,self.steps);
-
-            T2r2 = transl(self.rcanFpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %
-            q2r2=  self.ur3.model.ikcon(T2r2, self.ur3.model.getpos());
-
-            qr2Matrix2 = jtraj(q1r2,q2r2,self.steps);
+    
 
 
             %%Object Drop Transforms::
@@ -198,15 +163,23 @@ classdef FinalDemo < handle
 
 
 
+            %Generate Q matrix for the Thor robot for the first movement
+            qr1start = self.thor.model.getpos();
 
-            %%Animate Transofrms.
+            T1 = transl(self.rcanIpos) * trotx(pi); %"where red can is"
+            q1=  self.thor.model.ikcon(T1); 
+
+            qMatrix1 = jtraj(qr1start,q1,self.steps);
 
             %%Thor to Red Can
             for i = 1:self.steps
-            self.thor.model.animate(qMatrix1(i,:));
-            drawnow();
-            pause(0.02);
+                self.thor.model.animate(qMatrix1(i,:));
+                drawnow();
+                pause(0.02);
             end
+            
+            T2 = transl(self.rcanMpos); %* trotx(pi) * trotz(pi/2);
+            q2 = self.thor.model.ikcon(T2); %"Where to place can for pick up
             
             %Red Can placement THOR
             for i = 1:self.steps
@@ -221,33 +194,50 @@ classdef FinalDemo < handle
                 drawnow();
                 pause(0.02);
             end
+            
+            T3 = transl((self.mcartoniPos) + [0.02,-0.02,0.03])* trotx(pi) * trotz(pi/2); %added an offset due to the model 
+            q3=  self.thor.model.ikcon(T3);
+
+            %thor to Milk carton Q matrix
+            qMatrix3 = jtraj(q2,q3,self.steps);
+
+            %%UR3e Transforms.
+            qur3start = self.ur3.model.getpos();
+            
+            %%0.02 offset (x axis) from the object origin will work.
+            T1ur3 = transl(self.rcanMpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %"where red can is"
+            q1ur3=  self.ur3.model.ikcon(T1ur3, qur3start); %q1 = r.model.ikcon(T1);
+            
+            % UR3 qmatrix
+            qur3Matrix1 = jtraj(qur3start,q1ur3,self.steps);
 
             %%Thor to Carton + UR3e to Can.
             for i = 1:self.steps
-                self.thor.model.animate(qMatrix3(i,:)); %Thor to mcarton
+                %Thor to milk carton
+                self.thor.model.animate(qMatrix3(i,:)); 
                 %%Ur3e movement:
-                self.ur3.model.animate(qr2Matrix1(i,:));
-                q1r2=  self.ur3.model.ikcon(T1r2, self.ur3.model.getpos());
-                qr2Matrix1 = jtraj(self.ur3.model.getpos(),q1r2,self.steps);
+                self.ur3.model.animate(qur3Matrix1(i,:));
                 drawnow();
                 pause(0.02);
             
             end
 
+            T2ur3 = transl(self.rcanFpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %
+            q2ur3=  self.ur3.model.ikcon(T2ur3, self.ur3.model.getpos());
+            qur3Matrix2 = jtraj(self.ur3.model.getpos(),q2ur3,self.steps);
+
             %UR3e drop can off.
             for i = 1:self.steps
-                q2r2=  self.ur3.model.ikcon(T2r2, self.ur3.model.getpos());
-                qr2Matrix2 = jtraj(self.ur3.model.getpos(),q2r2,self.steps);
-                self.ur3.model.animate(qr2Matrix2(i,:));
+                self.ur3.model.animate(qur3Matrix2(i,:));
                 
-
-                tr = self.ur3.model.fkine(qr2Matrix2(i,:));
+                tr = self.ur3.model.fkine(qur3Matrix2(i,:));
                 tvredCanV = [self.redCanV,ones(size(self.redCanV,1),1)]* trotx(pi/2) * troty(pi/2) * tr.T'; %
                 set(self.redCan,'Vertices',tvredCanV(:,1:3));
 
                 drawnow();
                 pause(0.02);
             end
+
             %Can falling into bin
             for i = 1:self.steps
                 % Update can's position based on the trajectory
@@ -258,8 +248,6 @@ classdef FinalDemo < handle
                 drawnow();
                 pause(0.02);  % Adjust speed if needed
             end
-
-            
             
 
         end
