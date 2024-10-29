@@ -29,8 +29,19 @@ classdef FinalDemo < handle
         redCan;
         mcarton;
 
-        %Safety Flag
+        %Safety Flag & Physical Estop
         SafetyFlag = false;
+        resumeFlag = false;
+        buttonPressed = false;
+        waitingForResume = false;
+        currentStep = 1;                 % Track the current animation step for estop to resume
+
+        %% Arduino Button Setup
+        port = 'COM6';
+        buttonPin = 'D2';
+        a = arduino('COM6', 'Uno');
+        debounceDelay = 0.05; % 50 ms debounce delay
+        
 
 
         %robot
@@ -45,6 +56,14 @@ classdef FinalDemo < handle
 
             %set the brick starting locations
             %self.trash1Location = [-0.6, -0.4, self.tableHeight];
+            configurePin(self.a, self.buttonPin, 'DigitalInput');
+            % Timer for monitoring the e-stop button
+            t = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, ...
+                      'TimerFcn', @(~,~)self.checkEmergencyStop());  % Call checkEmergencyStop as a method of self
+            
+            start(t);
+
+            
 
 			input('Press enter to begin')
 			self.placeObjects(); %places all the objects in the enviorment
@@ -177,8 +196,9 @@ classdef FinalDemo < handle
                     self.thor.model.animate(qMatrix1(i,:));
                     drawnow();
                     pause(0.02);
-                elseif self.SafetyFlag
+                elseif self.SafetyFlag == true
                     input("press enter to reset system")
+                     
                 end
             end
             
@@ -252,8 +272,36 @@ classdef FinalDemo < handle
                 drawnow();
                 pause(0.02);  % Adjust speed if needed
             end
+           
             
 
+        end
+
+        function checkEmergencyStop(self)
+            % Read the button state
+            buttonState = readDigitalPin(self.a, self.buttonPin);
+        
+            % Handle button press with debounce
+            if buttonState == 0 && ~self.buttonPressed
+                if ~self.SafetyFlag && ~self.waitingForResume
+                    self.SafetyFlag = true;
+                    self.waitingForResume = false;
+                    self.resumeFlag = false;
+                    disp('Emergency Stop Engaged');
+                elseif self.SafetyFlag && ~self.waitingForResume
+                    self.SafetyFlag = false;
+                    self.waitingForResume = true;
+                    disp('Emergency Stop Disengaged. Waiting for Resume Command.');
+                elseif self.waitingForResume
+                    self.resumeFlag = true;
+                    self.waitingForResume = false;
+                    disp('Resume Command Issued');
+                end
+                self.buttonPressed = true;
+                pause(self.debounceDelay); % Debounce delay
+            elseif buttonState == 1
+                self.buttonPressed = false;
+            end
         end
 
     end
