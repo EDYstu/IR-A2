@@ -2,11 +2,10 @@
 
 % Load the robot arms
 UR3; 
-Thor;
 
 % Assign robot models to a variable
 robot1 = UR3;
-robot2 = thor;
+
 
 % EXAMPLE: Define the starting and ending configurations (joint angles in radians)
 %
@@ -34,7 +33,6 @@ scale = 0.5;
 % EXAMPLE: Plot the initial configuration of the robot
 %
 % Not necessary in full implementation (environment already defined)
-robot1.plot(q1, 'workspace', workspace, 'scale', scale);
 
 % Initialize collision result array
 result = true(steps, 1);
@@ -102,9 +100,9 @@ end
 
 function [ transforms ] = GetLinkPoses( q, robot)
 
-links = robot.links;
+links = robot.model.links;
 transforms = zeros(4, 4, length(links) + 1);
-transforms(:,:,1) = robot.base;
+transforms(:,:,1) = robot.model.base;
 
 for i = 1:length(links)
     L = links(1,i);

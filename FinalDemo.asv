@@ -201,6 +201,7 @@ classdef FinalDemo < handle
                     pause(0.02);
                 elseif self.SafetyFlag == true
                     input("press enter to reset system")
+                    self.SafetyFlag = false;
                      
                 end
             end
@@ -223,6 +224,7 @@ classdef FinalDemo < handle
                     pause(0.02);
                 elseif self.SafetyFlag == true
                     input("press enter to reset system")
+                    self.SafetyFlag = false;
                      
                 end
             end
@@ -255,6 +257,7 @@ classdef FinalDemo < handle
 
                 elseif self.SafetyFlag == true
                     input("press enter to reset system")
+                    self.SafetyFlag = false;
                      
                 end
             
@@ -288,6 +291,7 @@ classdef FinalDemo < handle
                     pause(0.02);
                 elseif self.SafetyFlag == true
                     input("press enter to reset system")
+                    self.SafetyFlag = false;
                      
                 end
             end
@@ -322,7 +326,7 @@ classdef FinalDemo < handle
                     pause(0.02);  % Adjust speed if needed
                 elseif self.SafetyFlag == true
                     input("press enter to reset system")
-
+                    self.SafetyFlag = false;
                 end
             end
             
@@ -355,7 +359,7 @@ classdef FinalDemo < handle
                     pause(0.02);
                 elseif self.SafetyFlag == true
                     
-                   input("press enter to reset system")
+                    self.SafetyFlag = false;
                      
                 end
             end
