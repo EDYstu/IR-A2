@@ -75,15 +75,9 @@ classdef FinalDemo < handle
             % start(t);
 
             
+			%self.placeObjects(); %places all the objects in the enviorment
 
-			input('Press enter to begin')
-			self.placeObjects(); %places all the objects in the enviorment
-       
-            self.thor = Thor(transl(0.5,0,0.5)); 
-            self.ur3 = UR3e(transl(-0.4,0,0.5));
-            
-            input('Press enter to begin moving')
-            self.moveTrash() %movex brick to locations 
+            %self.moveTrash() %movex brick to locations 
            
            
 
@@ -181,7 +175,8 @@ classdef FinalDemo < handle
             set(self.Apple,'Vertices',transformedAppleVertices(:,1:3)); 
 
 
-
+            self.thor = Thor(transl(0.5,0,0.5)); 
+            self.ur3 = UR3e(transl(-0.4,0,0.5));
 
 
             view(3)
@@ -189,13 +184,6 @@ classdef FinalDemo < handle
         end
 
         function moveTrash(self)
-
-    
-
-
-            
-
-
 
             %Generate Q matrix for the Thor robot for the first movement
             qr1start = self.thor.model.getpos();
@@ -481,6 +469,11 @@ classdef FinalDemo < handle
             elseif buttonState == 1
                 self.buttonPressed = false;
             end
+        end
+
+        function triggeredEstopGui(self)
+            self.SafetyFlag = true;
+            disp("Estop clicked")
         end
 
     end
