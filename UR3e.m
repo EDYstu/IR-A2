@@ -38,11 +38,11 @@ classdef UR3e < RobotBaseClass
 %% CreateModel
         function CreateModel(self)
             link(1) = Link('d',0.15185,'a',0,'alpha',pi/2,'qlim',deg2rad([-360 360]), 'offset',0);
-            link(2) = Link('d',0,'a',-0.24355,'alpha',0,'qlim', deg2rad([-45 15]), 'offset',0);
-            link(3) = Link('d',0,'a',-0.2132,'alpha',0,'qlim', deg2rad([-45 15]), 'offset', 0);
-            link(4) = Link('d',0.13105,'a',0,'alpha',pi/2,'qlim',deg2rad([-15 15]),'offset', 0);
-            link(5) = Link('d',0.08535,'a',0,'alpha',-pi/2,'qlim',deg2rad([-30,30]), 'offset',0);
-            link(6) = Link('d',	0.0921,'a',0,'alpha',0,'qlim',deg2rad([-30,30]), 'offset', 0);
+            link(2) = Link('d',0,'a',-0.24355,'alpha',0,'qlim', deg2rad([-180 0]), 'offset',0);
+            link(3) = Link('d',0,'a',-0.2132,'alpha',0,'qlim', deg2rad([-360 360]), 'offset', 0);
+            link(4) = Link('d',0.13105,'a',0,'alpha',pi/2,'qlim',deg2rad([-360 360]),'offset', 0);
+            link(5) = Link('d',0.08535,'a',0,'alpha',-pi/2,'qlim',deg2rad([-360 360]), 'offset',0);
+            link(6) = Link('d',	0.0921,'a',0,'alpha',0,'qlim',deg2rad([-360 360]), 'offset', 0);
              
             self.model = SerialLink(link,'name',self.name);
         end      
