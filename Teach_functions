@@ -1,0 +1,30 @@
+        function teach(self, jointAngles, jointIndex)
+
+            % Ensure the input is valid (6 joints for a 6-DOF robot)
+            if length(jointAngles) == 6 % && jointIndex >= 1 && jointIndex <= 6
+                currentAngles = self.thor.model.getpos();
+                currentAngles(jointIndex) = jointAngles(jointIndex);
+
+                % Use inverse kinematics to compute the new positions
+                q = self.thor.model.ikcon(self.thor.model.fkine(currentAngles)); 
+
+                % Animate the robot to the new joint configuration
+                self.thor.model.animate(q);
+            end
+        end
+
+        function moveToCartesianPosition(self, x, y, z)
+            % Translation matrix for target position
+            T_target = transl(x, y, z);  
+
+            % Inverse kinematics to get joint angles
+                try
+                    q_target = self.thor.model.ikcon(T_target);
+
+                    % Call teach with the calculated joint angles
+                    self.thor.model.animate(q_target);
+
+                catch ME
+                    disp(['Error in moveToCartesianPosition: ', ME.message]);
+                end
+        end
