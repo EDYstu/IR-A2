@@ -16,21 +16,29 @@ classdef FinalDemo < handle
 
         %middle location
         rcanMpos = [0.165,0,0.625];
-        mcartonMpos = [0.160,0,0.715];
+        mcartonMpos = [0.160,-0.2,0.715];
+
+        appleMpos = [0.165,0.2,0.527];
 
         %DropOff Locations
         rcanFpos = [-0.75,0,0.7];
+        mcartonFpos = [-0.75,0.2,0.7];
+        appleFpos = [-0.75,-0.2,0.7];
 
         %Disposal locations
         rcanDropPos = [-0.75,0,0.4];
+        mcartonDropPos = [-0.75,0.2,0.4];
+        appleDropPos = [-0.75,-0.2,0.4];
 
         %trash model vertices
         redCanV;
         mcartonV;
+        AppleV;
         
         %trash Models
         redCan;
         mcarton;
+        Apple;
 
         %Safety Flag & Physical Estop
         SafetyFlag = false;
@@ -87,6 +95,15 @@ classdef FinalDemo < handle
             axis equal
             
             %Using the method from Tutorial 4
+            %Textures:
+            floortxtrsz = 2;
+            negfloortxtrsz = -2;
+            surf([negfloortxtrsz,negfloortxtrsz;floortxtrsz,floortxtrsz] ...
+            ,[negfloortxtrsz,floortxtrsz;negfloortxtrsz,floortxtrsz] ...
+            ,[0.01,0.01;0.01,0.01] ...
+            ,'CData',imread('concrete.jpg') ...
+            ,'FaceColor','texturemap');
+
             %table
             table = PlaceObject('tableBrownModified.ply');
             vertices = get(table,'Vertices');
@@ -158,13 +175,11 @@ classdef FinalDemo < handle
             set(self.mcarton,'Vertices',transformedmcartonVertices(:,1:3)); %%Error upon this line
 
             %Apple
-            Apple = PlaceObject('Apple.ply'); 
-            AppleV = get(Apple,'Vertices');
-            transformedAppleVertices = [AppleV,ones(size(AppleV,1),1)] * transl(0.8,0.2,0.575)';
-            set(Apple,'Vertices',transformedAppleVertices(:,1:3)); 
+            self.Apple = PlaceObject('Apple.ply'); 
+            self.AppleV = get(self.Apple,'Vertices');
+            transformedAppleVertices = [self.AppleV,ones(size(self.AppleV,1),1)] * transl(0.8,0.2,0.575)';
+            set(self.Apple,'Vertices',transformedAppleVertices(:,1:3)); 
 
-
-        
 
 
 
@@ -178,10 +193,7 @@ classdef FinalDemo < handle
     
 
 
-            %%Object Drop Transforms::
-            T_start = transl(self.rcanFpos);       % Initial Cartesian position
-            T_end = transl(self.rcanDropPos); % Final Cartesian position
-            T_trajectory = ctraj(T_start, T_end, self.steps);  % Cartesian trajectory for steps
+            
 
 
 
@@ -295,24 +307,150 @@ classdef FinalDemo < handle
                      
                 end
             end
-
+            
+            %thor to Apple Q matrix generation
             T5 = transl((self.appleIpos)+ [0,0,0.03])* trotx(pi) * trotz(pi/2); %added an offset due to the model 
-            q5=  self.thor.model.ikcon(T5);
-
-            %thor to Milk carton Q matrix
+            q5=  self.thor.model.ikcon(T5); 
             qMatrix5 = jtraj(q4,q5,self.steps);
 
-            %Can falling into bin
+
+            %UR3 to Milk carton
+            T3ur3 = transl(self.mcartonMpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %
+            q3ur3=  self.ur3.model.ikcon(T3ur3, self.ur3.model.getpos());
+            qur3Matrix3 = jtraj(self.ur3.model.getpos(),q3ur3,self.steps)
+
+            %%can Drop Transforms:
+            T_start = transl(self.rcanFpos);       % Initial Cartesian position
+            T_end = transl(self.rcanDropPos); % Final Cartesian position
+            T_trajectory = ctraj(T_start, T_end, self.steps);  % Cartesian trajectory for steps
+
+            %Can falling into bin, Thor moving to Apple and UR3 moving to
+            %the Milk Carton 
             for i = 1:self.steps
-                self.thor.model.animate(qMatrix5(i,:));
-                % Update can's position based on the trajectory
-                trCan = T_trajectory(:,:,i);  % Get the transformation at each step
-                transformedRedCanVertices = [self.redCanV, ones(size(self.redCanV,1), 1)] * trCan';
-                
-                set(self.redCan, 'Vertices', transformedRedCanVertices(:, 1:3));  % Update can's position
-                drawnow();
-                pause(0.02);  % Adjust speed if needed
+                if self.SafetyFlag == false
+                    self.thor.model.animate(qMatrix5(i,:));
+                    self.ur3.model.animate(qur3Matrix3(i,:));
+                    % Update can's position based on the trajectory
+                    trCan = T_trajectory(:,:,i);  % Get the transformation at each step
+                    transformedRedCanVertices = [self.redCanV, ones(size(self.redCanV,1), 1)] * trCan';
+                    set(self.redCan, 'Vertices', transformedRedCanVertices(:, 1:3));  % Update can's position
+                    drawnow();
+                    pause(0.02);  % Adjust speed if needed
+                elseif self.SafetyFlag == true
+                    input("press enter to reset system")
+                    self.SafetyFlag = false;
+                end
             end
+            
+            %thor Apple to middle Q matrix
+            T6 = transl((self.appleMpos)+ [0,0,0.03])* trotx(pi) * trotz(pi/2); %added an offset due to the model 
+            q6=  self.thor.model.ikcon(T6);
+            qMatrix4 = jtraj(q5,q6,self.steps);
+
+            %UR3 Milk Carton to Bin Q matrix
+
+            T4ur3 = transl(self.mcartonFpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %
+            q4ur3=  self.ur3.model.ikcon(T4ur3, self.ur3.model.getpos());
+            qur3Matrix4 = jtraj(self.ur3.model.getpos(),q4ur3,self.steps);
+
+            %UR3e drop can off and thor pickup carton
+            for i = 1:self.steps
+                if self.SafetyFlag == false
+                    self.ur3.model.animate(qur3Matrix4(i,:));
+                    self.thor.model.animate(qMatrix4(i,:));
+
+                    tr = self.thor.model.fkine(qMatrix4(i,:));
+                    tvAppleV = [self.AppleV,ones(size(self.AppleV,1),1)]* trotx(pi)  * tr.T'; %
+                    set(self.Apple,'Vertices',tvAppleV(:,1:3));
+                    
+                    tr = self.ur3.model.fkine(qur3Matrix4(i,:));
+                    tvmcartonV = [self.mcartonV,ones(size(self.mcartonV,1),1)]* trotx(pi/2) * troty(pi/2) * tr.T'; %
+                    set(self.mcarton,'Vertices',tvmcartonV(:,1:3));
+    
+                    drawnow();
+                    pause(0.02);
+                elseif self.SafetyFlag == true
+                    input("press enter to reset system")
+                    self.SafetyFlag = false;
+                     
+                end
+            end
+
+            %thor to start
+            qMatrix5 = jtraj(q6,qr1start,self.steps);
+
+
+            %UR3 to Milk carton
+            T5ur3 = transl(self.appleMpos)* trotx(pi/2) * troty(pi/2); %
+            q5ur3=  self.ur3.model.ikcon(T5ur3, self.ur3.model.getpos());
+            qur3Matrix5 = jtraj(self.ur3.model.getpos(),q5ur3,self.steps)
+
+            %%milk carton Drop Transforms:
+            T_start = transl(self.mcartonFpos);       % Initial Cartesian position
+            T_end = transl(self.mcartonDropPos); % Final Cartesian position
+            T_trajectory = ctraj(T_start, T_end, self.steps);  % Cartesian trajectory for steps
+
+            %Can falling into bin, Thor moving to Apple and UR3 moving to
+            %the Milk Carton 
+            for i = 1:self.steps
+                if self.SafetyFlag == false
+                    self.thor.model.animate(qMatrix5(i,:));
+                    self.ur3.model.animate(qur3Matrix5(i,:));
+                    % Update can's position based on the trajectory
+                    trMcarton = T_trajectory(:,:,i);  % Get the transformation at each step
+                    tvmcartonV = [self.mcartonV, ones(size(self.mcartonV,1), 1)] * trMcarton';
+                    set(self.mcarton, 'Vertices', tvmcartonV(:, 1:3));  % Update can's position
+                    drawnow();
+                    pause(0.02);  % Adjust speed if needed
+                elseif self.SafetyFlag == true
+                    input("press enter to reset system")
+                    self.SafetyFlag = false;
+                end
+            end
+
+                        %UR3 to Milk carton
+            T6ur3 = transl(self.appleFpos)* trotx(pi/2) * troty(pi/2); %
+            q6ur3=  self.ur3.model.ikcon(T6ur3, self.ur3.model.getpos());
+            qur3Matrix6 = jtraj(self.ur3.model.getpos(),q6ur3,self.steps)
+
+
+            %Apple going to the bin with UR3
+            for i = 1:self.steps
+                if self.SafetyFlag == false
+                    self.ur3.model.animate(qur3Matrix6(i,:));
+                    tr = self.ur3.model.fkine(qur3Matrix6(i,:));
+                    tvAppleV = [self.AppleV,ones(size(self.AppleV,1),1)]* trotx(pi)  * tr.T'; %
+                    set(self.Apple,'Vertices',tvAppleV(:,1:3));
+
+                    drawnow();
+                    pause(0.02);  % Adjust speed if needed
+                elseif self.SafetyFlag == true
+                    input("press enter to reset system")
+                    self.SafetyFlag = false;
+                end
+            end
+
+            %Apple dropping into bin
+            T_start = transl(self.appleFpos);       % Initial Cartesian position
+            T_end = transl(self.appleDropPos); % Final Cartesian position
+            T_trajectory = ctraj(T_start, T_end, self.steps);  % Cartesian trajectory for steps
+
+            %Apple falling into bin
+            for i = 1:self.steps
+                if self.SafetyFlag == false
+                    trApple= T_trajectory(:,:,i);  % Get the transformation at each step
+                    tvAppleV = [self.AppleV, ones(size(self.AppleV,1), 1)] * trApple';
+                    set(self.Apple, 'Vertices', tvAppleV(:, 1:3));  % Update can's position
+                    drawnow();
+                    pause(0.02);  % Adjust speed if needed
+                elseif self.SafetyFlag == true
+                    input("press enter to reset system")
+                    self.SafetyFlag = false;
+                end
+            end
+
+
+
            
             
 
