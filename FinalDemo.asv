@@ -153,23 +153,6 @@ classdef FinalDemo < handle
 
         function moveTrash(self)
 
-
-    
-
-            
-
-            %%UR3e Transforms.
-            qur3start = self.ur3.model.getpos();
-            
-            %%0.02 offset (x axis) from the object origin will work.
-            T1ur3 = transl(self.rcanMpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %"where red can is"
-            q1ur3=  self.ur3.model.ikcon(T1ur3, qur3start); %q1 = r.model.ikcon(T1);
-            
-            qur3Matrix1 = jtraj(qur3start,q1ur3,self.steps);
-
-            T2ur3 = transl(self.rcanFpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %
-            q2ur3=  self.ur3.model.ikcon(T2ur3, self.ur3.model.getpos());
-
     
 
 
@@ -190,9 +173,13 @@ classdef FinalDemo < handle
 
             %%Thor to Red Can
             for i = 1:self.steps
-                self.thor.model.animate(qMatrix1(i,:));
-                drawnow();
-                pause(0.02);
+                if self.SafetyFlag == false
+                    self.thor.model.animate(qMatrix1(i,:));
+                    drawnow();
+                    pause(0.02);
+                elseif self.SafetyFlag
+                    input("press enter to reset system")
+                end
             end
             
             T2 = transl(self.rcanMpos); %* trotx(pi) * trotz(pi/2);
@@ -234,20 +221,19 @@ classdef FinalDemo < handle
                 self.thor.model.animate(qMatrix3(i,:)); 
                 %%Ur3e movement:
                 self.ur3.model.animate(qur3Matrix1(i,:));
-                q1ur3=  self.ur3.model.ikcon(T1ur3, self.ur3.model.getpos());
-                qur3Matrix1 = jtraj(self.ur3.model.getpos(),q1ur3,self.steps);
                 drawnow();
                 pause(0.02);
             
             end
 
+            T2ur3 = transl(self.rcanFpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %
+            q2ur3=  self.ur3.model.ikcon(T2ur3, self.ur3.model.getpos());
+            qur3Matrix2 = jtraj(self.ur3.model.getpos(),q2ur3,self.steps);
+
             %UR3e drop can off.
             for i = 1:self.steps
-                q2ur3=  self.ur3.model.ikcon(T2ur3, self.ur3.model.getpos());
-                qur3Matrix2 = jtraj(self.ur3.model.getpos(),q2ur3,self.steps);
                 self.ur3.model.animate(qur3Matrix2(i,:));
                 
-
                 tr = self.ur3.model.fkine(qur3Matrix2(i,:));
                 tvredCanV = [self.redCanV,ones(size(self.redCanV,1),1)]* trotx(pi/2) * troty(pi/2) * tr.T'; %
                 set(self.redCan,'Vertices',tvredCanV(:,1:3));
