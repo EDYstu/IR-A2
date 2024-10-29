@@ -215,6 +215,7 @@ classdef FinalDemo < handle
                     drawnow();
                     pause(0.02);
                 elseif self.SafetyFlag == true
+                    
                     input("press enter to reset system")
                      
                 end
