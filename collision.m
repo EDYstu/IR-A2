@@ -43,7 +43,7 @@ for i = 1:steps
     disp(['Checking configuration ', num2str(i), ' of ', num2str(steps)]);
 
     % Check for collision at the current configuration
-    result(i) = IsCollision(robot1, qMatrix(i,:), f, v, fn, false);
+    result(i) = IsCollision(robot1.model, qMatrix(i,:), f, v, fn, false);
 
     % Display the robot's animation at the current configuration
     robot1.animate(qMatrix(i,:));
@@ -100,9 +100,9 @@ end
 
 function [ transforms ] = GetLinkPoses( q, robot)
 
-links = robot.model.links;
+links = robot.links
 transforms = zeros(4, 4, length(links) + 1);
-transforms(:,:,1) = robot.model.base;
+transforms(:,:,1) = robot.base;
 
 for i = 1:length(links)
     L = links(1,i);

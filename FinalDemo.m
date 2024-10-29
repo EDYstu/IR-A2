@@ -65,7 +65,6 @@ classdef FinalDemo < handle
             clc
             clf
 
-            %set the brick starting locations
             %self.trash1Location = [-0.6, -0.4, self.tableHeight];
             %configurePin(self.a, self.buttonPin, 'DigitalInput');
             % Timer for monitoring the e-stop button
@@ -73,12 +72,6 @@ classdef FinalDemo < handle
             %           'TimerFcn', @(~,~)self.checkEmergencyStop());  % Call checkEmergencyStop as a method of self
             % 
             % start(t);
-
-            
-			%self.placeObjects(); %places all the objects in the enviorment
-
-            %self.moveTrash() %movex brick to locations 
-           
            
 
 		end
@@ -89,7 +82,7 @@ classdef FinalDemo < handle
             axis equal
             
             %Using the method from Tutorial 4
-            %Textures:
+            %Textures floor:
             floortxtrsz = 2;
             negfloortxtrsz = -2;
             surf([negfloortxtrsz,negfloortxtrsz;floortxtrsz,floortxtrsz] ...
