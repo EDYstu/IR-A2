@@ -179,6 +179,18 @@ classdef FinalDemo < handle
 
         end
 
+        function teach(self, jointAngles)
+
+            % Ensure the input is valid (6 joints for a 6-DOF robot)
+            if length(jointAngles) == 6
+                % Use inverse kinematics to compute the new positions
+                q = self.thor.model.ikcon(self.thor.model.fkine(jointAngles)); 
+
+                % Animate the robot to the new joint configuration
+                self.thor.model.animate(q);
+            end
+        end
+
         function moveTrash(self)
 
             %Generate Q matrix for the Thor robot for the first movement
