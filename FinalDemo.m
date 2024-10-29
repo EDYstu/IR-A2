@@ -283,7 +283,7 @@ classdef FinalDemo < handle
 
             T2ur3 = transl(self.rcanFpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %
             q2ur3=  self.ur3.model.ikcon(T2ur3, self.ur3.model.getpos());
-            qur3Matrix2 = jtraj(self.ur3.model.getpos(),q2ur3,self.steps);
+            qur3Matrix2 = jtraj(self.ur3.model.getpos(),q2ur3,self.steps)
 
             %UR3e drop can off and thor pickup carton
             for i = 1:self.steps
@@ -411,7 +411,7 @@ classdef FinalDemo < handle
                         %UR3 to Milk carton
             T6ur3 = transl(self.appleFpos)* trotx(pi/2) * troty(pi/2); %
             q6ur3=  self.ur3.model.ikcon(T6ur3, self.ur3.model.getpos());
-            qur3Matrix6 = jtraj(self.ur3.model.getpos(),q6ur3,self.steps)
+            qur3Matrix6 = jtraj(self.ur3.model.getpos(),q6ur3,self.steps);
 
 
             %Apple going to the bin with UR3
