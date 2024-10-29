@@ -369,7 +369,7 @@ classdef FinalDemo < handle
                     drawnow();
                     pause(0.02);  % Adjust speed if needed
                 elseif self.SafetyFlag == true
-                    input("press enter to reset system")
+                    input("press the enter button to reset system")
 
                 end
             end
