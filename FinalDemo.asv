@@ -40,6 +40,9 @@ classdef FinalDemo < handle
         mcarton;
         Apple;
 
+        person
+        personV
+
         %Safety Flag & Physical Estop
         SafetyFlag = false;
         resumeFlag = false;
@@ -102,10 +105,10 @@ classdef FinalDemo < handle
             transformedVerticesFire = [verticesFire,ones(size(verticesFire,1),1)] * transl(2,-1,0)';
             set(fireEx,'Vertices',transformedVerticesFire(:,1:3));
 
-            person = PlaceObject('personMaleConstruction.ply');
-            verticesPerson = get(person,'Vertices');
-            transformedVerticesPerson = [verticesPerson,ones(size(verticesPerson,1),1)]* trotz(pi) * transl(2,0,0)';
-            set(person,'Vertices',transformedVerticesPerson(:,1:3));
+            self.person = PlaceObject('personMaleConstruction.ply');
+            self.personV = get(self.person,'Vertices');
+            transformedVerticesPerson = [self.personV,ones(size(self.personV,1),1)]* trotz(pi) * transl(2,0,0)';
+            set(self.person,'Vertices',transformedVerticesPerson(:,1:3));
 
                     %estop
             estop = PlaceObject('emergencyStopWallMounted.ply'); %use the wall moutned one as its an appropriate scale
@@ -187,20 +190,24 @@ classdef FinalDemo < handle
             qMatrix1 = jtraj(qr1start,q1,self.steps);
 
             %%Thor to Red Can
-            i = 1;
-            while i <= self.steps
+            for i = 1:self.steps
                 if self.SafetyFlag == false
                     self.thor.model.animate(qMatrix1(i,:));
                     drawnow();
                     pause(0.02);
-                    i = i +1; 
                 elseif self.SafetyFlag == true
-                     disp("Estop enga")
+                    input("press enter to reset system")
+                     
                 end
             end
             
             T2 = transl(self.rcanMpos); %* trotx(pi) * trotz(pi/2);
             q2 = self.thor.model.ikcon(T2); %"Where to place can for pick up
+
+            %%can Drop Transforms:
+            T_start = transl([2,0,0]);       % Initial Cartesian position
+            T_end = transl(1.4,0,0); % Final Cartesian position
+            T_trajectory = ctraj(T_start, T_end, self.steps);  % Cartesian trajectory for steps
             
             %Red Can placement THOR
             for i = 1:self.steps
@@ -212,10 +219,31 @@ classdef FinalDemo < handle
                     tr = self.thor.model.fkine(qMatrix2(i,:));
                     tvredCanV = [self.redCanV,ones(size(self.redCanV,1),1)]* trotx(pi)  * tr.T'; %
                     set(self.redCan,'Vertices',tvredCanV(:,1:3));
+
+                    trPer = T_trajectory(:,:,i);  % Get the transformation at each step
+                    transformedPersonVertices = [self.personV, ones(size(self.personV,1), 1)]* trotz(pi) * trPer';
+                    set(self.person, 'Vertices', transformedPersonVertices(:, 1:3));  % Update can's position
+                    personLocationX = trPer(1:3, 4)';
+                    if personLocationX <=1.5
+                       disp("LIGHT CURTAIN TRIGGERED --- PLEASE MOVE BACK")
+                       self.SafetyFlag = true
+                       input("press enter to move back")
+                       T_start = transl(trPer(1:3, 4)');       % Initial Cartesian position
+                       T_end = transl(2,0,0); % Final Cartesian position
+                       T_trajectory = ctraj(T_start, T_end, self.steps);  % Cartesian trajectory for steps
+                       for f = 1:self.steps
+                           trPer = T_trajectory(:,:,f);  % Get the transformation at each step
+                           transformedPersonVertices = [self.personV, ones(size(self.personV,1), 1)]* trotz(pi) * trPer';
+                           set(self.person, 'Vertices', transformedPersonVertices(:, 1:3));  % Update can's position
+                           personLocationX = trPer(1:3, 4)';
+                       end
+                    end
                 
                     drawnow();
                     pause(0.02);
                 elseif self.SafetyFlag == true
+                    
+                    input("press enter to reset system")
                      
                 end
             end
@@ -380,7 +408,7 @@ classdef FinalDemo < handle
                     drawnow();
                     pause(0.02);  % Adjust speed if needed
                 elseif self.SafetyFlag == true
-                    
+                    input("press enter to reset system")
                     self.SafetyFlag = false;
                 end
             end
@@ -402,7 +430,7 @@ classdef FinalDemo < handle
                     drawnow();
                     pause(0.02);  % Adjust speed if needed
                 elseif self.SafetyFlag == true
-                 
+                    input("press enter to reset system")
                     self.SafetyFlag = false;
                 end
             end
@@ -421,7 +449,7 @@ classdef FinalDemo < handle
                     drawnow();
                     pause(0.02);  % Adjust speed if needed
                 elseif self.SafetyFlag == true
-                
+                    input("press enter to reset system")
                     self.SafetyFlag = false;
                 end
             end
