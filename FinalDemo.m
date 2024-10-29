@@ -16,7 +16,7 @@ classdef FinalDemo < handle
 
         %middle location
         rcanMpos = [0.165,0,0.625];
-        mcartonMpos = [0.160,-0.2,0.715];
+        mcartonMpos = [0.160,-0.1,0.715];
 
         appleMpos = [0.165,0.2,0.527];
 
@@ -304,7 +304,7 @@ classdef FinalDemo < handle
                     self.thor.model.animate(qMatrix4(i,:));
 
                     tr = self.thor.model.fkine(qMatrix4(i,:));
-                    tvmcartonV = [self.mcartonV,ones(size(self.mcartonV,1),1)]* trotx(pi)  * tr.T'; %
+                    tvmcartonV = [self.mcartonV,ones(size(self.mcartonV,1),1)]* trotx(pi) * tr.T'; %
                     set(self.mcarton,'Vertices',tvmcartonV(:,1:3));
                     
                     tr = self.ur3.model.fkine(qur3Matrix2(i,:));
