@@ -1,79 +1,60 @@
-%% Joint Interpolation
-clear all
-close all
-clc
-set(0,'DefaultFigureWindowStyle','docked');
+% Load UR3e Model
+robot = Thor();
 
-% Steps
+% Define parameters for RMRC
 steps = 50;
+deltaT = 0.05;  % Discrete time step
 
-% Load robot arms
- mdl_planar2;                                       % Example 2-Link Planar Robot for tests
-% thor;
-% UR3e;
+% Define start and end positions in Cartesian space (x, y, z)
+x1 = [0.3, 0.2, 0.1]';  % Start position
+x2 = [0.5, 0.2, 0.15]';  % End position
 
-% Transformation matrices
-T1 = [eye(3) [1.5 1 0]'; zeros(1,3) 1];              % First pose
-T2 = [eye(3) [1.5 -1 0]'; zeros(1,3) 1];             % Second pose
+% Define the desired fixed orientation matrix (-y, -z, +x)
+R_desired = [0, 0, 1; -1, 0, 0; 0, -1, 0];  % Columns represent -y, -z, +x axes
 
-% Use Inverse Kinematics to solve the joint angles required to achieve each pose
-M = [1 1 zeros(1,4)];                                % Masking Matrix
-q1 = p2.ikine(T1,'q0', [0 0], 'mask', M);            % Solve for joint angles
-q2 = p2.ikine(T2, 'q0', [0 0], 'mask', M);           % Solve for joint angles
-p2.plot(q1,'trail','r-');
-pause(3)
+% Initialize Cartesian pose trajectory (position and fixed orientation)
+x = zeros(3, steps);
+s = lspb(0, 1, steps);  % Create interpolation scalar
 
-% Joint interpolation to move between the two poses
-qMatrix = jtraj(q1,q2,steps);
-p2.plot(qMatrix,'trail','r-');                       % plot path
-
-
-
-%% Resolved Motion Rate Control
-
-clear all
-close all
-clc
-set(0,'DefaultFigureWindowStyle','docked');
-
-% Load robot arms
- mdl_planar2;                                       % Example 2-Link Planar Robot for tests
-% thor;
-% UR3e;
-
-steps = 50;
-
-% Transformation matrices
-T1 = [eye(3) [1.5 1 0]'; zeros(1,3) 1];              % First pose
-T2 = [eye(3) [1.5 -1 0]'; zeros(1,3) 1];             % Second pose
-
-M = [1 1 zeros(1,4)];                                % Masking Matrix
-
-% Two sets of points in the X-Y plane
-x1 = [1.5 1]';
-x2 = [1.5 -1]';
-deltaT = 0.05;                                       % Discrete time step
-
-% Matrix of waypoints
-x = zeros(2,steps);
-s = lspb(0,1,steps);                                 % Create interpolation scalar
+% Interpolate position in Cartesian space while keeping orientation constant
 for i = 1:steps
-    x(:,i) = x1*(1-s(i)) + s(i)*x2;                  % Create trajectory in x-y plane
+    % Position interpolation
+    x(:, i) = x1 * (1 - s(i)) + x2 * s(i);  % Linear interpolation in (x, y, z)
 end
 
-% Matrix of joint angles
-qMatrix = nan(steps,2);
+% Create a 4x4 homogeneous transformation matrix with transl and R_desired
+T_init = transl(x1(1), x1(2), x1(3)) * [R_desired, [0; 0; 0]; 0, 0, 0, 1];
 
-% Set the Transformation for the 1st point, and solve for the joint angles
-qMatrix(1,:) = p2.ikine(T1, 'q0', [0 0], 'mask', M);
+% Solve IK for the initial pose
+q_init = robot.model.ikcon(T_init, zeros(1, robot.model.n));  % Initial joint angles
 
-% Use RMRC to move the end-effector from x1 to x2
+% Initialize joint trajectory matrix
+qMatrix = nan(steps, robot.model.n);
+qMatrix(1, :) = q_init;  % Set initial joint configuration
+
+% RMRC loop for generating joint trajectory with fixed orientation
 for i = 1:steps-1
-    xdot = (x(:,i+1) - x(:,i))/deltaT;               % Calculate velocity at discrete time step
-    J = p2.jacob0(qMatrix(i,:));                     % Get the Jacobian at the current state
-    J = J(1:2,:);                                    % Take only first 2 rows
-    qdot = inv(J)*xdot;                              % Solve velocitities via RMRC
-    qMatrix(i+1,:) =  qMatrix(i,:) + deltaT*qdot';   % Update next joint state
+    % Calculate the linear velocity in Cartesian space
+    xdot_linear = (x(:, i+1) - x(:, i)) / deltaT;  % Linear velocity (x, y, z)
+
+    % Calculate the angular velocity to maintain the desired orientation
+    R_current = robot.model.fkine(qMatrix(i, :)).R;  % Current rotation matrix
+    Rdot = (R_desired - R_current) / deltaT;  % Rate of change of rotation matrix
+    omega_skew = R_current' * Rdot;  % Skew-symmetric form of angular velocity
+    omega = [omega_skew(3, 2); omega_skew(1, 3); omega_skew(2, 1)];  % Angular velocity vector
+
+    % Combine linear and angular velocities
+    xdot = [xdot_linear; omega];  % 6x1 velocity vector
+
+    % Get the full 6x6 Jacobian for the current joint configuration
+    J = robot.model.jacob0(qMatrix(i, :));  % Full Jacobian (6x6)
+
+    % Compute joint velocities using RMRC
+    qdot = pinv(J) * xdot;  % Use pseudo-inverse to solve for joint velocities
+
+    % Update the joint configuration for the next step
+    qMatrix(i+1, :) = qMatrix(i, :) + deltaT * qdot';
 end
 
-p2.plot(qMatrix,'trail','r-');                       % Plot
+% Plot the trajectory of the UR3e robot
+robot.model.plot(qMatrix, 'trail', 'r-');
