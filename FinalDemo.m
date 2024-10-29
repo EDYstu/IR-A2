@@ -26,7 +26,7 @@ classdef FinalDemo < handle
         appleFpos = [-0.75,-0.2,0.7];
 
         %Disposal locations
-        rcanDropPos = [-0.75,0,0.4];
+        rcanDropPos = [-0.75,0.05,0.4];
         mcartonDropPos = [-0.75,0.2,0.4];
         appleDropPos = [-0.75,-0.2,0.4];
 
@@ -338,9 +338,18 @@ classdef FinalDemo < handle
 
 
             %UR3 to Milk carton
-            T3ur3 = transl(self.mcartonMpos + [-0.02, 0, 0])* trotx(pi/2) * troty(pi/2); %
-            q3ur3=  self.ur3.model.ikcon(T3ur3, self.ur3.model.getpos());
-            qur3Matrix3 = jtraj(self.ur3.model.getpos(),q3ur3,self.steps)
+            % Define the position for mcartonFpos (first intermediate position)
+            T3dot5ur3 = transl(self.mcartonFpos) * trotx(pi/2) * troty(pi/2);  
+            q3dot5ur3 = self.ur3.model.ikcon(T3dot5ur3, self.ur3.model.getpos());  
+            qur3dot5Matrix3 = jtraj(self.ur3.model.getpos(), q3dot5ur3, 5);  
+            
+            % Define the position for mcartonMpos (final target position)
+            T3ur3 = transl(self.mcartonMpos + [-0.02, 0, 0]) * trotx(pi/2) * troty(pi/2);  
+            q3ur3 = self.ur3.model.ikcon(T3ur3, q3dot5ur3);  
+            qur3Matrix3 = jtraj(q3dot5ur3, q3ur3, self.steps - 5);  
+            
+            % Combine the two trajectories into a single matrix
+            qur3Matrix3 = [qur3dot5Matrix3; qur3Matrix3];
 
             %%can Drop Transforms:
             T_start = transl(self.rcanFpos);       % Initial Cartesian position
