@@ -51,10 +51,10 @@ classdef FinalDemo < handle
         currentStep = 1;                 % Track the current animation step for estop to resume
 
         %% Arduino Button Setup
-        % port = 'COM6';
-        % buttonPin = 'D2';
-        % a = arduino('COM6', 'Uno');
-        % debounceDelay = 0.05; % 50 ms debounce delay
+        port = 'COM6';
+        buttonPin = 'D2';
+        a = arduino('COM6', 'Uno');
+        debounceDelay = 0.05; % 50 ms debounce delay
         
 
 
@@ -69,12 +69,7 @@ classdef FinalDemo < handle
             clf
 
             %self.trash1Location = [-0.6, -0.4, self.tableHeight];
-            %configurePin(self.a, self.buttonPin, 'DigitalInput');
-            % Timer for monitoring the e-stop button
-            % t = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, ...
-            %           'TimerFcn', @(~,~)self.checkEmergencyStop());  % Call checkEmergencyStop as a method of self
-            % 
-            % start(t);
+            
            
 
 		end
@@ -192,6 +187,14 @@ classdef FinalDemo < handle
         end
 
         function moveTrash(self)
+
+            %%Begining Arduino Estop setup
+            configurePin(self.a, self.buttonPin, 'DigitalInput');
+            % Timer for monitoring the e-stop button
+            t = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, ...
+                      'TimerFcn', @(~,~)self.checkEmergencyStop());  % Call checkEmergencyStop as a method of self
+
+            start(t);
 
             %Generate Q matrix for the Thor robot for the first movement
             qr1start = self.thor.model.getpos();
