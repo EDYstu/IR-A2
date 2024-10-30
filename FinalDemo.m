@@ -18,7 +18,7 @@ classdef FinalDemo < handle
         rcanMpos = [0.165,0,0.625];
         mcartonMpos = [0.160,-0.1,0.715];
 
-        appleMpos = [0.165,0,0.527];
+        appleMpos = [0.165,0.2,0.527];
 
         %DropOff Locations
         rcanFpos = [-0.75,0,0.7];
@@ -50,11 +50,11 @@ classdef FinalDemo < handle
         waitingForResume = false;
         currentStep = 1;                 % Track the current animation step for estop to resume
 
-        % %% Arduino Button Setup
-        % port = 'COM6';
-        % buttonPin = 'D2';
-        % a = arduino('COM6', 'Uno');
-        % debounceDelay = 0.05; % 50 ms debounce delay
+        %% Arduino Button Setup
+        port = 'COM6';
+        buttonPin = 'D2';
+        a = arduino('COM6', 'Uno');
+        debounceDelay = 0.05; % 50 ms debounce delay
         
 
 
@@ -175,45 +175,30 @@ classdef FinalDemo < handle
         end
 
         function teach(self, jointAngles, jointIndex)
-
+    
             % Ensure the input is valid (6 joints for a 6-DOF robot)
             if length(jointAngles) == 6 % && jointIndex >= 1 && jointIndex <= 6
                 currentAngles = self.thor.model.getpos();
                 currentAngles(jointIndex) = jointAngles(jointIndex);
-
+    
                 % Use inverse kinematics to compute the new positions
                 q = self.thor.model.ikcon(self.thor.model.fkine(currentAngles)); 
-
+    
                 % Animate the robot to the new joint configuration
                 self.thor.model.animate(q);
             end
         end
 
-        function moveToCartesianPosition(self, x, y, z)
-            % Translation matrix for target position
-            T_target = transl(x, y, z);
-
-            % Inverse kinematics to get joint angles
-                try
-                    q_target = self.thor.model.ikcon(T_target);
-
-                    % Call teach with the calculated joint angles
-                    self.thor.model.animate(q_target);
-
-                catch ME
-                    disp(['Error in moveToCartesianPosition: ', ME.message]);
-                end
-        end
 
         function moveTrash(self)
 
-            % %%Begining Arduino Estop setup
-            % configurePin(self.a, self.buttonPin, 'DigitalInput');
-            % % Timer for monitoring the e-stop button
-            % t = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, ...
-            %           'TimerFcn', @(~,~)self.checkEmergencyStop());  % Call checkEmergencyStop as a method of self
-            % 
-            % start(t);
+            %%Begining Arduino Estop setup
+            configurePin(self.a, self.buttonPin, 'DigitalInput');
+            % Timer for monitoring the e-stop button
+            t = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, ...
+                      'TimerFcn', @(~,~)self.checkEmergencyStop());  % Call checkEmergencyStop as a method of self
+
+            start(t);
 
             %Generate Q matrix for the Thor robot for the first movement
             qr1start = self.thor.model.getpos();
@@ -310,7 +295,11 @@ classdef FinalDemo < handle
                     %Thor to milk carton
                     self.thor.model.animate(qMatrix3(i,:)); 
                     %%Ur3e movement:
+                    q1ur3=  self.ur3.model.ikcon(T1ur3, self.ur3.model.getpos()); %q1 = r.model.ikcon(T1);
+                    qur3Matrix1 = jtraj(self.ur3.model.getpos(),q1ur3,self.steps);
+                    %%DELETE HER IF IT DOESN'T WORK
                     self.ur3.model.animate(qur3Matrix1(i,:));
+                    
                     drawnow();
                     pause(0.02);
 
@@ -334,6 +323,8 @@ classdef FinalDemo < handle
             %UR3e drop can off and thor pickup carton
             for i = 1:self.steps
                 if self.SafetyFlag == false
+
+                    qur3Matrix2 = jtraj(self.ur3.model.getpos(),q2ur3,self.steps);
                     self.ur3.model.animate(qur3Matrix2(i,:));
                     self.thor.model.animate(qMatrix4(i,:));
 
@@ -383,7 +374,6 @@ classdef FinalDemo < handle
             for i = 1:self.steps
                 if self.SafetyFlag == false
                     self.thor.model.animate(qMatrix5(i,:));
-                    qur3Matrix3 = jtraj(self.ur3.model.getpos(),q3ur3,self.steps);
                     self.ur3.model.animate(qur3Matrix3(i,:));
                     % Update can's position based on the trajectory
                     trCan = T_trajectory(:,:,i);  % Get the transformation at each step
@@ -411,7 +401,6 @@ classdef FinalDemo < handle
             %UR3e drop can off and thor pickup carton
             for i = 1:self.steps
                 if self.SafetyFlag == false
-                    qur3Matrix4 = jtraj(self.ur3.model.getpos(),q4ur3,self.steps);
                     self.ur3.model.animate(qur3Matrix4(i,:));
                     self.thor.model.animate(qMatrix4(i,:));
 
@@ -436,7 +425,7 @@ classdef FinalDemo < handle
             qMatrix5 = jtraj(q6,qr1start,self.steps);
 
 
-            %UR3 to apple
+            %UR3 to Milk carton
             T5ur3 = transl(self.appleMpos)* trotx(pi/2) * troty(pi/2); %
             q5ur3=  self.ur3.model.ikcon(T5ur3, self.ur3.model.getpos());
             qur3Matrix5 = jtraj(self.ur3.model.getpos(),q5ur3,self.steps)
@@ -450,7 +439,6 @@ classdef FinalDemo < handle
             %the Milk Carton 
             for i = 1:self.steps
                 if self.SafetyFlag == false
-                    qur3Matrix5 = jtraj(self.ur3.model.getpos(),q5ur3,self.steps);
                     self.thor.model.animate(qMatrix5(i,:));
                     self.ur3.model.animate(qur3Matrix5(i,:));
                     % Update can's position based on the trajectory
@@ -544,6 +532,23 @@ classdef FinalDemo < handle
             self.SafetyFlag = true;
             disp("Estop clicked")
         end
+
+        function moveToCartesianPosition(self, x, y, z)
+            % Translation matrix for target position
+            T_target = transl(x, y, z);  
+
+            % Inverse kinematics to get joint angles
+                try
+                    q_target = self.thor.model.ikcon(T_target);
+
+                    % Call teach with the calculated joint angles
+                    self.thor.model.animate(q_target);
+
+                catch ME
+                    disp(['Error in moveToCartesianPosition: ', ME.message]);
+                end
+        end
+
 
     end
 end
